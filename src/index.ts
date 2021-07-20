@@ -6,38 +6,21 @@ const DefaultComponents: IRegistry[] = [
     GoogleMaps as unknown as IRegistry,
 ];
 
-function configure(container: IContainer, config?): IContainer {
-    const hasConfigInstance = container.has(IGoogleMapsConfiguration, true);
-
-    if (!hasConfigInstance) {
-        container.register(IGoogleMapsConfiguration);
-    }
-
-    const innerConfig = container.get(IGoogleMapsConfiguration);
-    const defaultOptions = innerConfig.getOptions();
-
-    return config(defaultOptions);
-
-    return container.register(
-        ...DefaultComponents
-    );
-}
-
-function createGoogleMapsConfiguration(callback) {
+function createGoogleMapsConfiguration(optionsProvider) {
     return {
-        callback,
+        optionsProvider,
         register(container: IContainer) {
             const configClass = container.get(IGoogleMapsConfiguration);
             const options = configClass.getOptions();
 
-            callback(options);
+            optionsProvider(options);
 
             configClass.options(options);
 
             return container.register(...DefaultComponents)
         },
         customize(cb?: (options: IGoogleMapsConfiguration) => void) {
-            return createGoogleMapsConfiguration(cb ?? callback);
+            return createGoogleMapsConfiguration(cb ?? optionsProvider);
         }
     };
 }

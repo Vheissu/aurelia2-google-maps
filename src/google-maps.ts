@@ -5,8 +5,7 @@ import { IGoogleMapsAPI } from './google-maps-api';
 import { IMarkerClustering } from './marker-clustering';
 
 import { Events } from './events';
-
-const logger: any = {};
+import { ILogger } from '@aurelia/kernel';
 
 declare let google: any;
 export interface Marker {
@@ -61,14 +60,15 @@ export class GoogleMaps {
         @IGoogleMapsAPI readonly googleMapsApi: IGoogleMapsAPI,
         @IMarkerClustering readonly markerClustering: IMarkerClustering,
         @IObserverLocator readonly observerLocator: IObserverLocator,
+        @ILogger readonly logger: ILogger,
         @IPlatform readonly platform: IPlatform
     ) {
         if (!config.get('apiScript')) {
-            logger.error('No API script is defined.');
+            this.logger.error('No API script is defined.');
         }
 
         if ((!config.get('apiKey') && config.get('apiKey') !== false) && (!config.get('client') && config.get('client') !== false)) {
-            logger.error('No API key or client ID has been specified.');
+            this.logger.error('No API key or client ID has been specified.');
         }
 
         this.markerClustering.loadScript();
@@ -374,7 +374,7 @@ export class GoogleMaps {
         const markersObserver = this.observerLocator.getArrayObserver(this.markers);
         this._markersSubscription = {
             handleCollectionChange: () => {
-                this.markerCollectionChange({});
+                this.markerCollectionChange();
             },
             dispose: () => {
                 markersObserver.unsubscribe(this._markersSubscription);
@@ -417,54 +417,17 @@ export class GoogleMaps {
      * Handle the change to the marker collection. Collection observer returns an array of splices which contains
      * information about the change to the collection.
      *
-     * @param splices
      */
-    markerCollectionChange(splices: any) {
-        if (!splices.length) {
-            // Collection changed but the splices didn't
-            return;
-        }
-
+    markerCollectionChange() {
         let renderPromises = [];
 
-        for (let splice of splices) {
-            if (splice.removed.length) {
-                // Iterate over all the removed markers
-                for (let removedObj of splice.removed) {
-                    // Iterate over all the rendered markers to find the one to remove
-                    for (let markerIndex in this._renderedMarkers) {
-                        if (!this._renderedMarkers.hasOwnProperty(markerIndex)) {
-                            continue
-                        }
+        for (const [i, renderedMarker] of this._renderedMarkers.entries()) {
+            renderedMarker.setMap(null);
+            this._renderedMarkers.splice(i, 1);
+        }
 
-                        let renderedMarker = this._renderedMarkers[markerIndex];
-
-                        // Check if the latitude/longitude matches - cast to string of float precision (1e-12)
-                        if (renderedMarker.position.lat().toFixed(12) !== removedObj.latitude.toFixed(12) ||
-                            renderedMarker.position.lng().toFixed(12) !== removedObj.longitude.toFixed(12)) {
-                            continue;
-                        }
-
-                        // Set the map to null;
-                        renderedMarker.setMap(null);
-
-                        // Splice out this rendered marker as well
-                        this._renderedMarkers.splice((<any>markerIndex), 1);
-
-                        // We found the marker, so break from the first level for-loop
-                        break;
-                    }
-                }
-            }
-
-            // Add the new markers to the map
-            if (splice.addedCount) {
-                let addedMarkers = this.markers.slice(splice.index, splice.index + splice.addedCount);
-
-                for (let addedMarker of addedMarkers) {
-                    renderPromises.push(this.renderMarker(addedMarker));
-                }
-            }
+        for (let addedMarker of this.markers) {
+            renderPromises.push(this.renderMarker(addedMarker));    
         }
 
         /**
@@ -730,15 +693,15 @@ export class GoogleMaps {
 
         // Add the subscription to markers
         const markersObserver = this.observerLocator.getArrayObserver(this.markers);
-        this._markersSubscription = {
+        this._polygonsSubscription = {
             handleCollectionChange: () => {
-                this.polygonCollectionChange({});
+                this.polygonCollectionChange();
             },
             dispose: () => {
-                markersObserver.unsubscribe(this._markersSubscription);
+                markersObserver.unsubscribe(this._polygonsSubscription);
             }
         };
-        markersObserver.subscribe(this._markersSubscription);
+        markersObserver.subscribe(this._polygonsSubscription);
 
         if (!newValue.length) return;
 
@@ -769,60 +732,16 @@ export class GoogleMaps {
      * Handle the change to the polygon collection. Collection observer returns an array of splices which contains
      * information about the change to the collection.
      *
-     * @param splices
      */
-    polygonCollectionChange(splices: any) {
-        if (!splices.length) {
-            // Collection changed but the splices didn't
-            return;
+    polygonCollectionChange() {
+        for (const [i, renderedPolygon] of this._renderedPolygons.entries()) {
+            renderedPolygon.setMap(null);
+            this._renderedPolygons.splice(i, 1);
         }
 
         this._mapPromise.then(() => {
-            for (let splice of splices) {
-                if (splice.removed.length) {
-                    // Iterate over all the removed markers
-                    for (let removedObj of splice.removed) {
-                        // Iterate over all the rendered markers to find the one to remove
-                        for (let polygonIndex in this._renderedPolygons) {
-                            if (!this._renderedPolygons.hasOwnProperty(polygonIndex)) {
-                                continue
-                            }
-
-                            let renderedPolygon = this._renderedPolygons[polygonIndex];
-
-                            // Get string representation
-                            let strRendered, strRemoved;
-
-                            strRendered = this.encodePath(renderedPolygon.getPath());
-
-                            let removedPaths = removedObj.paths.map(x => {
-                                return new (<any>window).google.maps.LatLng(x.latitude, x.longitude);
-                            });
-
-                            strRemoved = this.encodePath(removedPaths);
-
-                            // Check based on string representation
-                            if (strRendered !== strRemoved) {
-                                continue
-                            }
-
-                            // Set the map to null;
-                            renderedPolygon.setMap(null);
-
-                            // Splice out this rendered marker as well
-                            this._renderedPolygons.splice((<any>polygonIndex), 1);
-                            break;
-                        }
-                    }
-                }
-
-                // Add the new polygons to the map
-                if (splice.addedCount) {
-                    let addedPolygons = this.polygons.slice(splice.index, splice.index + splice.addedCount);
-                    for (let addedPolygon of addedPolygons) {
-                        this.renderPolygon(addedPolygon);
-                    }
-                }
+            for (let addedPolygon of this.polygons) {
+                this.renderPolygon(addedPolygon);    
             }
         }).then(() => {
             /**
