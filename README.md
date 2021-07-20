@@ -12,12 +12,12 @@ import { GoogleMapsConfiguration } from 'aurelia2-google-maps';
 
 Aurelia.register(
     GoogleMapsConfiguration.customize((options) => {
-        options.apiKey = 'AIzaSyDbkP7_mTqzpKRAvbvZF1iJ524dnIxVYos';
+        options.apiKey = '';
 
         options.options = {
             backgroundColor: '#495061',
         };
-        
+
         options.region = 'AU';
     }),
 );
