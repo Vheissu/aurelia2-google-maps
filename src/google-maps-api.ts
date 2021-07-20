@@ -1,9 +1,12 @@
-import { Configure } from './configure';
+import { DI } from '@aurelia/kernel';
+import { IGoogleMapsConfiguration } from './configure';
 
+export const IGoogleMapsAPI = DI.createInterface<IGoogleMapsAPI>('IGoogleMapsAPI', x => x.singleton(GoogleMapsAPI));
+export interface IGoogleMapsAPI extends GoogleMapsAPI {}
 export class GoogleMapsAPI {
     _scriptPromise = null;
 
-    constructor(readonly config: Configure) {
+    constructor(@IGoogleMapsConfiguration readonly config: IGoogleMapsConfiguration) {
 
     }
 

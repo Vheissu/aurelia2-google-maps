@@ -1,15 +1,14 @@
-import { bindable, customElement, IPlatform } from '@aurelia/runtime-html';
+import { bindable, customElement, IObserverLocator, IPlatform } from '@aurelia/runtime-html';
 
-import { Configure } from './configure';
-import { GoogleMapsAPI } from './google-maps-api';
-import { MarkerClustering } from './marker-clustering';
+import { IGoogleMapsConfiguration } from './configure';
+import { IGoogleMapsAPI } from './google-maps-api';
+import { IMarkerClustering } from './marker-clustering';
 
 import { Events } from './events';
 
 const logger: any = {};
 
 declare let google: any;
-
 export interface Marker {
     icon?: string;
     label?: string;
@@ -20,6 +19,8 @@ export interface Marker {
     latitude: number | string;
     longitude: number | string;
 }
+
+export interface IGoogleMaps extends GoogleMaps {}
 
 @customElement({
     name: 'google-map',
@@ -56,9 +57,10 @@ export class GoogleMaps {
 
     constructor(
         readonly element: Element,
-        readonly config: Configure,
-        readonly googleMapsApi: GoogleMapsAPI,
-        readonly markerClustering: MarkerClustering,
+        @IGoogleMapsConfiguration readonly config: IGoogleMapsConfiguration,
+        @IGoogleMapsAPI readonly googleMapsApi: IGoogleMapsAPI,
+        @IMarkerClustering readonly markerClustering: IMarkerClustering,
+        @IObserverLocator readonly observerLocator: IObserverLocator,
         @IPlatform readonly platform: IPlatform
     ) {
         if (!config.get('apiScript')) {
@@ -366,11 +368,23 @@ export class GoogleMaps {
         }
 
         // Add the subscription to markers
-        this._markersSubscription = this.bindingEngine
-            .collectionObserver(this.markers)
-            .subscribe((splices) => { this.markerCollectionChange(splices); });
+        // this._markersSubscription = this.bindingEngine
+        //     .collectionObserver(this.markers)
+        //     .subscribe((splices) => { this.markerCollectionChange(splices); });
+        const markersObserver = this.observerLocator.getArrayObserver(this.markers);
+        this._markersSubscription = {
+            handleCollectionChange: () => {
+                this.markerCollectionChange({});
+            },
+            dispose: () => {
+                markersObserver.unsubscribe(this._markersSubscription);
+            }
+        };
+        markersObserver.subscribe(this._markersSubscription);
 
-        if (!newValue.length) return;
+        if (!newValue.length) {
+            return;
+        }
 
         // Render all markers again
         let markerPromises = [];
@@ -715,9 +729,16 @@ export class GoogleMaps {
         }
 
         // Add the subscription to markers
-        this._polygonsSubscription = this.bindingEngine
-            .collectionObserver(this.polygons)
-            .subscribe((splices) => { this.polygonCollectionChange(splices); });
+        const markersObserver = this.observerLocator.getArrayObserver(this.markers);
+        this._markersSubscription = {
+            handleCollectionChange: () => {
+                this.polygonCollectionChange({});
+            },
+            dispose: () => {
+                markersObserver.unsubscribe(this._markersSubscription);
+            }
+        };
+        markersObserver.subscribe(this._markersSubscription);
 
         if (!newValue.length) return;
 

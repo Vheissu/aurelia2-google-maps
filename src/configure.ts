@@ -1,14 +1,21 @@
+import { DI } from "@aurelia/kernel";
+
 export interface ConfigInterface {
-    apiScript: string;
-    apiKey: string;
+    apiScript?: string;
+    apiKey?: string;
     client?: string,
-    apiLibraries: string;
-    options: any;
-    markerCluster: {enable: boolean, src?: string, imagePath?: string, imageExtension?: string}
+    apiLibraries?: string;
+    options?: any;
+    markerCluster?: {enable: boolean, src?: string, imagePath?: string, imageExtension?: string};
+    region?: string;
+    language?: string;
 }
 
+export interface IGoogleMapsConfiguration extends Configure {}
+export const IGoogleMapsConfiguration = DI.createInterface<IGoogleMapsConfiguration>('IGoogleMapsConfiguration', x => x.singleton(Configure));
+
 export class Configure {
-    private _config: any;
+    protected _config: ConfigInterface;
 
     constructor() {
         this._config = {
@@ -26,6 +33,10 @@ export class Configure {
                 imageExtension: 'png',
             }
         };
+    }
+
+    getOptions() {
+        return this._config;
     }
 
     options(obj: ConfigInterface) {
