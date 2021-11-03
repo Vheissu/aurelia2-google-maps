@@ -11,14 +11,14 @@ Inside of `main.ts`/`main.js` import the plugin and register it:
 import { GoogleMapsConfiguration } from 'aurelia2-google-maps';
 
 Aurelia.register(
-    GoogleMapsConfiguration.customize((options) => {
-        options.apiKey = '';
-
-        options.options = {
-            backgroundColor: '#495061',
-        };
-
-        options.region = 'AU';
+    GoogleMapsConfiguration.customize((config) => {
+        config.options({
+            apiKey: '',
+            region: 'AU',
+            options: {
+                backgroundColor: '#495061',
+            }
+        });
     }),
 );
 ```
