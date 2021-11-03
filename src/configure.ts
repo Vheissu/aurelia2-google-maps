@@ -35,7 +35,7 @@ export class Configure {
         };
     }
 
-    getOptions() {
+    getOptions(): ConfigInterface {
         return this._config;
     }
 
