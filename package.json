@@ -1,6 +1,6 @@
 {
     "name": "aurelia2-google-maps",
-    "version": "0.0.13",
+    "version": "0.0.14",
     "description": "A plugin for Google Maps support in Aurelia 2",
     "main": "dist/index.js",
     "module": "dist/aurelia2-google-maps.es.js",

@@ -1,5 +1,5 @@
-import { DI, IContainer, IRegistry, isObject, noop } from '@aurelia/kernel';
-import { IGoogleMapsConfiguration } from './configure';
+import { DI, IContainer, IRegistry, noop } from '@aurelia/kernel';
+import { ConfigInterface, IGoogleMapsConfiguration } from './configure';
 import { GoogleMaps } from './google-maps';
 
 const DefaultComponents: IRegistry[] = [
@@ -19,7 +19,7 @@ function createGoogleMapsConfiguration(optionsProvider) {
 
             return container.register(...DefaultComponents)
         },
-        customize(cb?: (options: IGoogleMapsConfiguration) => void) {
+        customize(cb?: (options: ConfigInterface) => void) {
             return createGoogleMapsConfiguration(cb ?? optionsProvider);
         }
     };
