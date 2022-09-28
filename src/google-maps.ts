@@ -126,7 +126,7 @@ export class GoogleMaps implements ICustomElementViewModel {
       this.clearMarkers();
     });
   }
-  
+
   bound() {
     this.markersChanged(this.markers);
     this.polygonsChanged(this.polygons);
@@ -381,20 +381,27 @@ export class GoogleMaps implements ICustomElementViewModel {
   }
 
   setCenter(latLong: any) {
-    this._mapPromise.then(() => {
-      this.map.setCenter(latLong);
-      this.sendBoundsEvent();
-    });
+    if (latLong) {
+      this._mapPromise.then(() => {
+        this.map.setCenter(latLong);
+        this.sendBoundsEvent();
+      });
+    }
   }
 
   updateCenter() {
-    this._mapPromise.then(() => {
-      let latLng = new (<any>window).google.maps.LatLng(
-        parseFloat(<any>this.latitude),
-        parseFloat(<any>this.longitude)
-      );
-      this.setCenter(latLng);
-    });
+    if (this.latitude && this.longitude) {
+      this._mapPromise.then(() => {
+        let latLng = new (<any>window).google.maps.LatLng(
+          parseFloat(<any>this.latitude),
+          parseFloat(<any>this.longitude)
+        );
+  
+        if (latLng) {
+          this.setCenter(latLng);
+        }
+      });
+    }
   }
 
   latitudeChanged() {
